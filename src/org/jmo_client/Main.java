@@ -42,6 +42,11 @@ public class Main {
 			}
 			switch(cmd[0]){
 			case "upload-plugin":
+				File files [] = new File[cmd.length-1];
+				for (int i = 0; i < files.length; i++){
+					files[i] = new File ( cmd[i+1]);
+				}
+				uploadPlugin(os, files);
 				break;
 			case "create-repo":
 				createRepo(os);
@@ -68,6 +73,32 @@ public class Main {
 			br.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+	/********************************************************************************************
+	 * Upload the given java class file to Swift and its optional scripts.
+	 * @param os - The OpenStack client.
+	 * @param files - A String array containing in location 0 the path of the java class file and 
+	 * 				in the successive  eventually locations any scripts specified.
+	 */
+	private static void uploadPlugin(OSClient os, File[] files) {
+		if(!files[0].exists()){
+			System.out.println("Error retriving the class file.");
+		}else{
+			os.objectStorage().objects().put(JMO_REPO, files[0].getName(),
+					Payloads.create(files[0]),
+					ObjectPutOptions.create()
+					.path("plugins"));
+			//upload eventually scripts
+			for(int i=1; i < files.length; i++){
+				if (!files[i].exists())
+					System.out.println("Error retriving " + files[i].getName());
+				else
+					os.objectStorage().objects().put(JMO_REPO, files[i].getName(),
+							Payloads.create(files[i]),
+							ObjectPutOptions.create()
+							.path("scripts"));
+			}
 		}
 	}
 	/********************************************************************************************
