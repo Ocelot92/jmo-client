@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Scanner;
 
 import org.openstack4j.api.OSClient;
 import org.openstack4j.api.exceptions.AuthenticationException;
@@ -28,23 +30,20 @@ public class Main {
 	private static final String PLUGINS_DIR = "plugins";
 	private static final String SCRIPTS_DIR = "scripts";
 	public static void main(String[] args) {
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String cmd[] = null;
 		File cfg = new File (System.getProperty("user.home") + File.separator + ".jmo" + File.separator + "credentials.properties");
 		OSClient os = getOSclient(cfg);
+		Scanner scan = new Scanner(System.in);
+		String cmd = null;
 		do{
 			System.out.println("Please enter one of the following commands:\n"
 					+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
-			try {
-				cmd = br.readLine().split(" ");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			switch(cmd[0]){
+			cmd = scan.next();
+			switch(cmd){
 			case "upload-plugin":
-				File files [] = new File[cmd.length-1];
-				for (int i = 0; i < files.length; i++){
-					files[i] = new File ( cmd[i+1]);
+				ArrayList<File> files = new ArrayList<File>();
+				while(scan.hasNext()){
+					File f = new File(scan.next());
+					files.add(f);
 				}
 				uploadPlugin(os, files);
 				break;
@@ -67,13 +66,9 @@ public class Main {
 				os = getOSclient(cfg);
 				break;
 			}
-		}while(cmd[0].compareTo("quit") != 0);
+		}while(cmd.compareTo("quit") != 0);
 		
-		try {
-			br.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		scan.close();
 	}
 	/********************************************************************************************
 	 * Upload the given java class file to Swift and its optional scripts.
@@ -81,21 +76,21 @@ public class Main {
 	 * @param files - A String array containing in location 0 the path of the java class file and 
 	 * 				in the successive  eventually locations any scripts specified.
 	 */
-	private static void uploadPlugin(OSClient os, File[] files) {
-		if(!files[0].exists()){
+	private static void uploadPlugin(OSClient os, ArrayList<File> files) {
+		if(!files.get(0).exists()){
 			System.out.println("Error retriving the class file.");
 		}else{
-			os.objectStorage().objects().put(JMO_REPO, files[0].getName(),
-					Payloads.create(files[0]),
+			os.objectStorage().objects().put(JMO_REPO, files.get(0).getName(),
+					Payloads.create(files.get(0)),
 					ObjectPutOptions.create()
 					.path("plugins"));
 			//upload eventually scripts
-			for(int i=1; i < files.length; i++){
-				if (!files[i].exists())
-					System.out.println("Error retriving " + files[i].getName());
+			for(File f : files){
+				if (!f.exists())
+					System.out.println("Error retriving " + f.getName());
 				else
-					os.objectStorage().objects().put(JMO_REPO, files[i].getName(),
-							Payloads.create(files[i]),
+					os.objectStorage().objects().put(JMO_REPO, f.getName(),
+							Payloads.create(f),
 							ObjectPutOptions.create()
 							.path("scripts"));
 			}
