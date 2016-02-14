@@ -18,13 +18,13 @@ import org.openstack4j.api.exceptions.AuthenticationException;
 import org.openstack4j.api.exceptions.ConnectionException;
 import org.openstack4j.api.storage.ObjectStorageObjectService;
 import org.openstack4j.model.common.Payloads;
-import org.openstack4j.model.storage.object.SwiftContainer;
-import org.openstack4j.model.storage.object.options.ContainerListOptions;
+import org.openstack4j.model.storage.object.SwiftObject;
+import org.openstack4j.model.storage.object.options.ObjectListOptions;
 import org.openstack4j.model.storage.object.options.ObjectPutOptions;
 import org.openstack4j.openstack.OSFactory;
 
 public class Main {
-	private static final String JMO_REPO = "JMO-Repository"; 
+	private static final String JMO_REPO = "test-Install"; 
 	private static final String PLUGINS_DIR = "plugins";
 	private static final String SCRIPTS_DIR = "scripts";
 	public static void main(String[] args) {
@@ -71,15 +71,16 @@ public class Main {
 		}
 	}
 	/********************************************************************************************
-	 * List the plugins in the JMO-Repository.
+	 * List the plugins in the JMO repository on Swift.
 	 * @param os - The OpenStack client.
 	 */
 	private static void listPlugins(OSClient os) {
-		List<? extends SwiftContainer> plugins = os.objectStorage().containers()
-				.list(ContainerListOptions.create().path('/' + JMO_REPO + '/' + "plugins"));
-		Iterator<? extends SwiftContainer> i = plugins.iterator();
+		List<? extends SwiftObject> plugins = os.objectStorage().objects()
+				.list(JMO_REPO, ObjectListOptions.create().path("plugins"));
+		Iterator<? extends SwiftObject> i = plugins.iterator();
+		SwiftObject plugin = null;
 		while (i.hasNext()){
-			SwiftContainer plugin = i.next();
+			 plugin = i.next();
 			System.out.println(plugin.getName());
 		}
 	}
@@ -90,7 +91,7 @@ public class Main {
 	private static void createRepo(OSClient os) {
 		if ( os.objectStorage().containers().getMetadata(JMO_REPO).get("X-Timestamp") == null )
 			os.objectStorage().containers().create(JMO_REPO);
-		uploadDir(os,new File(PLUGINS_DIR));
+		uploadDir(os, new File(PLUGINS_DIR));
 		uploadDir(os, new File(SCRIPTS_DIR));
 		
 		os.objectStorage().objects().put(JMO_REPO, "jmo.jar", Payloads.create(new File("jmo.jar")));
@@ -135,8 +136,6 @@ public class Main {
 			cred.askCredentials();
 			writeConfig(cfg,cred);			
 		}
-		
-		
 	}
 	/********************************************************************************************
 	 * Writes the credentials in the given config file.
