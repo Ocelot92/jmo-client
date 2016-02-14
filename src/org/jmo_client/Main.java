@@ -29,19 +29,20 @@ public class Main {
 	private static final String SCRIPTS_DIR = "scripts";
 	public static void main(String[] args) {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String cmd[] = null;
+		String cmd = null;
 		File cfg = new File (System.getProperty("user.home") + File.separator + ".jmo" + File.separator + "credentials.properties");
 		OSClient os = getOSclient(cfg);
 		do{
 			System.out.println("Please enter one of the following commands:\n"
 					+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
 			try {
-				cmd = br.readLine().split(" ");
+				cmd = br.readLine();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			switch(cmd[0]){
+			switch(cmd){
 			case "upload-plugin":
+				//skip the command from the input
 				File files [] = new File[cmd.length-1];
 				for (int i = 0; i < files.length; i++){
 					files[i] = new File ( cmd[i+1]);
@@ -55,6 +56,9 @@ public class Main {
 				listPlugins(os);
 				break;
 			case "script-init":
+				String plugins [] = new String[cmd.length];
+				
+				createScriptInit();
 				break;
 			case "download":
 				break;
@@ -216,5 +220,17 @@ public class Main {
 			System.out.println("*** Something went wrong contacting the Keystone service. Retry the configuration and double check the url");
 		}
 		return os;
+	}
+	/********************************************************************************************
+	 * Creates the init script to submit for the Cloud-Init at the instance creation.
+	 */
+	private static void createScriptInit() {
+		try {
+			PrintWriter init = new PrintWriter (new FileOutputStream (new File ("jmo-init.sh")));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		
 	}
 }
