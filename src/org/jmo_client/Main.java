@@ -38,6 +38,7 @@ public class Main {
 			System.out.println("Please enter one of the following commands:\n"
 					+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
 			cmd = scan.next();
+			
 			switch(cmd){
 			case "upload-plugin":
 				ArrayList<File> files = new ArrayList<File>();
@@ -55,11 +56,14 @@ public class Main {
 				break;
 			case "script-init":
 				ArrayList<String> plugins = new ArrayList<String>();
-				while(scan.hasNext()){
-					String s = scan.next();
+				Scanner scan2 = new Scanner(scan.nextLine());
+				while(scan2.hasNext()){
+					String s = scan2.next();
 					plugins.add(s);
-				}				
+				}
+				scan2.close();
 				prepareScriptInit(plugins, os);
+				System.out.println("Script created!");
 				break;
 			case "download":
 				break;
@@ -231,8 +235,7 @@ public class Main {
 			for (String str : plugins){
 				plgPicking += "downloadFile $JMO_CONTAINER/plugins/" + str + ".class ./plugins/" + str + ".class \n";
 				List<? extends SwiftObject> script = swift.list(JMO_REPO, ObjectListOptions.create()
-						.path("scripts")
-						.startsWith(str));
+						.startsWith(str + ".sh"));
 				if (script.size() != 0){
 					plgPicking += "downloadFile $JMO_CONTAINER/scripts/" + str + ".sh ./scripts/" + str + ".sh \n";
 				}
@@ -262,5 +265,6 @@ public class Main {
 		initString = initString.replace("<plugins>", plgPicking);
 		File initScript = new File ("jmo-init.sh");
 		FileUtils.writeStringToFile(initScript, initString);
+		initScript.setExecutable(true, false);
 	}
 }
