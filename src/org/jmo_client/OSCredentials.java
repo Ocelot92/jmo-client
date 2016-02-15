@@ -5,9 +5,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class OSCredentials {
-	private String user, password, tenant, keystoneEndpoint;
+	private String user, password, tenant, keystoneEndpoint, swiftEndpoint;
+	
 	public OSCredentials() {
-		user = password = tenant = keystoneEndpoint = null;
+		user = password = tenant = keystoneEndpoint = swiftEndpoint = null;
 	}
 	/**
 	 * Ask the user for type the OpenStack Credentials and save them in this
@@ -22,8 +23,10 @@ public class OSCredentials {
 		password = br.readLine();
 		System.out.println("Enter the tenant:");
 		tenant = br.readLine();
-		System.out.println("Enter the keystone endpoint (ex. http://192.168.1.1:5000/v2.0):");
+		System.out.println("Enter the Keystone endpoint (ex. http://192.168.1.1:5000/v2.0):");
 		keystoneEndpoint = br.readLine();
+		System.out.println("Enter the Swift endpoint (ex. http://192.168.1.1:8080/v1/AUTH_'tenantID'):");
+		swiftEndpoint = br.readLine();
 		}catch (IOException e){
 			e.printStackTrace();
 		}
@@ -33,7 +36,8 @@ public class OSCredentials {
 		String ret = "user: " + user + '\n'
 				+ "password: " + password + '\n'
 				+ "tenant: " + tenant + '\n'
-				+ "keystone endpoint: " + keystoneEndpoint + '\n';
+				+ "Keystone endpoint: " + keystoneEndpoint + '\n'
+				+ "Swift endpoint: " + swiftEndpoint + '\n';
 		return ret;
 	}
 	
@@ -92,7 +96,19 @@ public class OSCredentials {
 	public void setKeystoneEndpoint(String keystoneEndpoint) {
 		this.keystoneEndpoint = keystoneEndpoint;
 	}
-
-
+	
+	/**
+	 * @return the swiftEndpoint
+	 */
+	public String getSwiftEndpoint() {
+		return swiftEndpoint;
+	}
+	
+	/**
+	 * @param swiftEndpoint the swiftEndpoint to set
+	 */
+	public void setSwiftEndpoint(String swiftEndpoint) {
+		this.swiftEndpoint = swiftEndpoint;
+	}
 	
 }
