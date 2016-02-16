@@ -20,7 +20,6 @@ import org.apache.commons.io.FileUtils;
 import org.openstack4j.api.OSClient;
 import org.openstack4j.api.exceptions.AuthenticationException;
 import org.openstack4j.api.storage.ObjectStorageObjectService;
-import org.openstack4j.model.common.DLPayload;
 import org.openstack4j.model.common.Payloads;
 import org.openstack4j.model.storage.object.SwiftObject;
 import org.openstack4j.model.storage.object.options.ObjectListOptions;
@@ -73,13 +72,11 @@ public class Main {
 				break;
 			case "download":
 				String aux [] = scan.nextLine().split(" ");
-				String dlArgs [] = new String [aux.length-1];
+				String dlArgs [] = new String [aux.length];
 				for (int i = 0; i < dlArgs.length; i++){
 					dlArgs[i] = aux[i+1];
 				}
-				List<String> logs = logsFilter(dlArgs, os);
-				downloadLogs(os, dlArgs[0], dlArgs[1], logs);
-				
+				logsFilter(dlArgs, os);
 				break;
 			case "help":
 				break;
@@ -96,42 +93,6 @@ public class Main {
 		scan.close();
 	}
 	/********************************************************************************************
-	 * Download the logs in the logs list.
-	 * @param os - The OpenStack Client.
-	 * @param dlArgs - The download arguments.
-	 * @param logs - The list of logs in Swift to download.
-	 * @return The array of file downloaded.
-	 */
-	private static File[] downloadLogs(OSClient os, String instance, String plugin, List<String> logs) {
-		Iterator<String> itr = logs.iterator();
-		File [] fLogs = new File [logs.size()];
-		int i = 0;
-		while (itr.hasNext()){
-			String log = itr.next();
-			System.out.println("Downloading: " + '/' + JMO_LOGS + '/' + instance + "/logs/" + plugin + '/' + log);
-			DLPayload download = os.objectStorage().objects().download(JMO_LOGS, instance + "/logs/" + plugin + '/' + log);
-			BufferedReader br = new BufferedReader (new InputStreamReader(download.getInputStream()));
-			fLogs[i] = new File(log);
-			PrintWriter pw = null;
-			try {
-				pw = new PrintWriter(fLogs[i]);
-				String logLine;
-				while((logLine = br.readLine()) != null)
-					pw.println(logLine);
-			}catch(IOException e){
-				e.printStackTrace();
-			}
-			pw.close();
-			try {
-				br.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			i++;
-		}
-		return fLogs;
-	}
-	/********************************************************************************************
 	 * Return the logs in the given interval.
 	 * @param dlArgs - The download arguments: hostname plugin date1 date2.
 	 * @param os - The OpenStack client.
@@ -146,23 +107,9 @@ public class Main {
 				.path(instance + '/' + "logs" + '/' + plugin));
 		String sLogs [] = sortPathLogs(logsSwift);
 		List<String> ris  = new ArrayList<String>();
-		if(date1.compareTo(sLogs[sLogs.length-1].substring(0,14)) != 1 && date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
-			boolean end = false;
-			for (int i=0; i < sLogs.length && end == false; i++){
-				if(sLogs[i].substring(0,14).compareTo(date1) >= 0){
-					if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
-						ris.add(sLogs[i-1]);
-					else{
-						ris.add(sLogs[i]);
-						i++;
-					}
-					while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
-						ris.add(sLogs[i]);
-						i++;
-					}
-					end = true;
-				}
-			}
+		boolean end = false;
+		for (int i=0; i < sLogs.length && end == true; i++){
+			if()
 		}
 		return ris;
 	}
@@ -174,6 +121,7 @@ public class Main {
 	 */
 	private static String[] sortPathLogs(List<? extends SwiftObject> logsSwift) {
 		String logs [] = new String [logsSwift.size()];
+		long startTime = System.currentTimeMillis();
 		Iterator<? extends SwiftObject> objIter = logsSwift.iterator();		
 		for(int i=0; i < logs.length; i++){
 			SwiftObject aux = objIter.next();
