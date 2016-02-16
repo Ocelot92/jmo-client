@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -28,7 +29,8 @@ import org.openstack4j.openstack.OSFactory;
 public class Main {
 	private static final String JMO_REPO = "jmo-repository"; 
 	private static final String JMO_HOME = System.getProperty("user.dir");
-	
+	private static final String JMO_LOGS = "jmo-logs"; 
+
 	public static void main(String[] args) {
 		File cfg = new File (JMO_HOME + File.separator + ".credentials.properties");
 		OSClient os = getOSclient(cfg);
@@ -65,12 +67,16 @@ public class Main {
 					plugins.add(s);
 				}
 				scriptArgs.close();
-				prepareScriptInit(plugins, os);
+				prepareScriptInit(plugins, os, cfg);
 				System.out.println("Script created!");
 				break;
 			case "download":
-				String dlArgs [] = scan.nextLine().split(" ");
-				downloadLog(dlArgs);
+				String aux [] = scan.nextLine().split(" ");
+				String dlArgs [] = new String [aux.length];
+				for (int i = 0; i < dlArgs.length; i++){
+					dlArgs[i] = aux[i+1];
+				}
+				logsFilter(dlArgs, os);
 				break;
 			case "help":
 				break;
@@ -88,11 +94,38 @@ public class Main {
 	}
 	/********************************************************************************************
 	 * Download a log in the interval specified.
-	 * @param dlArgs - The download arguments: hostname plugin date1 date2
+	 * @param dlArgs - The download arguments: hostname plugin date1 date2.
+	 * @param os - The OpenStack client.
+	 * @return The files to download
 	 */
-	private static File[] downloadLog(String[] dlArgs) {
+	private static String[] logsFilter(String[] dlArgs, OSClient os) {
+		String instance = dlArgs[0];
+		String plugin = dlArgs[1];
+		String date1 = dlArgs[2];
+		String date2 = dlArgs[3];
+		List<? extends SwiftObject> logsSwift = os.objectStorage().objects().list(JMO_LOGS, ObjectListOptions.create()
+				.path(instance + '/' + "logs" + '/' + plugin));
+		String sLogs [] = sortPathLogs(logsSwift);
 		
 		return null;
+	}
+	/********************************************************************************************
+	 * Sort the logs by date returning an array of String.
+	 * @param logsSwift - The list of objects.
+	 * @return
+	 *  An array of Strings representing the logs sorted by date.
+	 */
+	private static String[] sortPathLogs(List<? extends SwiftObject> logsSwift) {
+		String logs [] = new String [logsSwift.size()];
+		long startTime = System.currentTimeMillis();
+		Iterator<? extends SwiftObject> objIter = logsSwift.iterator();		
+		for(int i=0; i < logs.length; i++){
+			SwiftObject aux = objIter.next();
+			String s[] = aux.getName().split("/");
+			logs[i] = s[s.length-1];
+		}
+		Arrays.sort(logs);
+		return logs;				
 	}
 	/********************************************************************************************
 	 * Upload the given java class file to Swift and its optional scripts.
@@ -239,9 +272,10 @@ public class Main {
 	}
 	/********************************************************************************************
 	 * Creates the init script to submit for the Cloud-Init at the instance creation.
-	 * @param plugins 
+	 * @param plugins - The plugins to add in the script.
+	 * @param cfg - The JMO client configuration file.
 	 */
-	private static void prepareScriptInit(ArrayList<String> plugins, OSClient os) {
+	private static void prepareScriptInit(ArrayList<String> plugins, OSClient os, File cfg) {
 		try {			
 			ObjectStorageObjectService swift = os.objectStorage().objects();
 			String plgPicking = "";
