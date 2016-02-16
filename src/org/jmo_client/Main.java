@@ -26,11 +26,11 @@ import org.openstack4j.model.storage.object.options.ObjectPutOptions;
 import org.openstack4j.openstack.OSFactory;
 
 public class Main {
-	private static final String JMO_REPO = "test-Install"; 
+	private static final String JMO_REPO = "jmo-repository"; 
 	private static final String JMO_HOME = System.getProperty("user.dir");
+	
 	public static void main(String[] args) {
-
-		File cfg = new File (JMO_HOME + File.separator + "credentials.properties");
+		File cfg = new File (JMO_HOME + File.separator + ".credentials.properties");
 		OSClient os = getOSclient(cfg);
 		Scanner scan = new Scanner(System.in);
 		String cmd = null;
@@ -41,14 +41,17 @@ public class Main {
 			
 			switch(cmd){
 			case "upload-plugin":
-				ArrayList<File> files = new ArrayList<File>();
-				while(scan.hasNext()){
-					File f = new File(scan.next());
-					files.add(f);
-				}
-				uploadPlugin(os, files);
+				String [] paths = scan.nextLine().split(" ");
+				File plugin = new File(paths[1]);
+				File script;
+				if(paths.length == 3)
+					script = new File (paths[2]);
+				else
+					script = null;
+				uploadPlugin(os, plugin, script);
 				break;
 			case "create-repo":
+				System.out.println("It may takes some time...");
 				createRepo(os);
 				break;
 			case "list":
@@ -56,16 +59,18 @@ public class Main {
 				break;
 			case "script-init":
 				ArrayList<String> plugins = new ArrayList<String>();
-				Scanner scan2 = new Scanner(scan.nextLine());
-				while(scan2.hasNext()){
-					String s = scan2.next();
+				Scanner scriptArgs = new Scanner(scan.nextLine());
+				while(scriptArgs.hasNext()){
+					String s = scriptArgs.next();
 					plugins.add(s);
 				}
-				scan2.close();
+				scriptArgs.close();
 				prepareScriptInit(plugins, os);
 				System.out.println("Script created!");
 				break;
 			case "download":
+				String dlArgs [] = scan.nextLine().split(" ");
+				downloadLog(dlArgs);
 				break;
 			case "help":
 				break;
@@ -82,29 +87,37 @@ public class Main {
 		scan.close();
 	}
 	/********************************************************************************************
+	 * Download a log in the interval specified.
+	 * @param dlArgs - The download arguments: hostname plugin date1 date2
+	 */
+	private static File[] downloadLog(String[] dlArgs) {
+		
+		return null;
+	}
+	/********************************************************************************************
 	 * Upload the given java class file to Swift and its optional scripts.
 	 * @param os - The OpenStack client.
 	 * @param files - A String array containing in location 0 the path of the java class file and 
 	 * 				in the successive  eventually locations any scripts specified.
 	 */
-	private static void uploadPlugin(OSClient os, ArrayList<File> files) {
-		if(!files.get(0).exists()){
+	private static void uploadPlugin(OSClient os, File plugin, File script) {
+		if(!plugin.exists()){
 			System.out.println("Error retriving the class file.");
 		}else{
-			os.objectStorage().objects().put(JMO_REPO, files.get(0).getName(),
-					Payloads.create(files.get(0)),
+			os.objectStorage().objects().put(JMO_REPO, plugin.getName(),
+					Payloads.create(plugin),
 					ObjectPutOptions.create()
 					.path("plugins"));
-			//upload eventually scripts
-			for(int i=1; i < files.size(); i++){
-				if (!files.get(i).exists())
-					System.out.println("Error retriving " + files.get(i).getName());
+			if (script != null){
+				if(!script.exists())
+					System.out.println("Error retriving " + script.getName());
 				else
-					os.objectStorage().objects().put(JMO_REPO, files.get(i).getName(),
-							Payloads.create(files.get(i)),
+					os.objectStorage().objects().put(JMO_REPO, script.getName(),
+							Payloads.create(script),
 							ObjectPutOptions.create()
 							.path("scripts"));
 			}
+
 		}
 	}
 	/********************************************************************************************
@@ -142,23 +155,23 @@ public class Main {
 	 */
 	private static void uploadDir(OSClient os, File dir) {
 		ObjectStorageObjectService swift = os.objectStorage().objects();
-		File pluginsList [] = dir.listFiles();
-		for (int i=0; i < pluginsList.length; i++){
-			swift.put(JMO_REPO, pluginsList[i].getName(),
-					Payloads.create(pluginsList[i]),
+		File files [] = dir.listFiles();
+		for (int i=0; i < files.length; i++){
+			swift.put(JMO_REPO, files[i].getName(),
+					Payloads.create(files[i]),
 					ObjectPutOptions.create()
-					.path("/plugins"));
+					.path('/' + dir.getName()));
 		}
 	}
 	/********************************************************************************************
 	 * Creates a java properties file with the OpenStack credentials.
 	 */
-	private static void createConfig(File cfg) {
+	private static void createConfig(File cfgFile) {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String aux = null;
-		if (cfg.exists()){
+		if (cfgFile.exists()){
 			do{
-			System.out.println("A config file already exists in " + cfg.getAbsolutePath() +". Do "
+			System.out.println("A config file already exists in " + cfgFile.getAbsolutePath() +". Do "
 					+ "you want to overwrite it? (yes/no)");
 			try {
 				aux = br.readLine();
@@ -168,10 +181,10 @@ public class Main {
 			}while (aux.compareTo("yes") != 0 && aux.compareTo("no") != 0);
 		}
 		if (aux == null || aux.compareTo("yes") == 0){
-			cfg.getParentFile().mkdirs();
+			cfgFile.getParentFile().mkdirs();
 			OSCredentials cred = new OSCredentials();
 			cred.askCredentials();
-			writeConfig(cfg,cred);
+			writeConfig(cfgFile,cred);
 		}
 	}
 	/********************************************************************************************
@@ -235,12 +248,12 @@ public class Main {
 			for (String str : plugins){
 				plgPicking += "downloadFile $JMO_CONTAINER/plugins/" + str + ".class ./plugins/" + str + ".class \n";
 				List<? extends SwiftObject> script = swift.list(JMO_REPO, ObjectListOptions.create()
-						.startsWith(str + ".sh"));
+						.startsWith("scripts/" + str + ".sh"));
 				if (script.size() != 0){
 					plgPicking += "downloadFile $JMO_CONTAINER/scripts/" + str + ".sh ./scripts/" + str + ".sh \n";
 				}
 			}
-			genetareInitScript(plgPicking);
+			genetareInitScript(plgPicking,cfg);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -248,10 +261,11 @@ public class Main {
 	/********************************************************************************************
 	 * Create the jmo-init.sh script from a template script.
 	 * @param plgPicking - plugins section of the script.
+	 * @param cfg - The JMO client configuration file.
 	 * @throws IOException in case of an I/O error.
 	 */
-	private static void genetareInitScript(String plgPicking) throws IOException {
-		InputStream is = new FileInputStream("credentials.properties");
+	private static void genetareInitScript(String plgPicking, File cfg) throws IOException {
+		InputStream is = new FileInputStream(cfg);
 		Properties prop = new Properties();
 		prop.load(is);
 		is.close();

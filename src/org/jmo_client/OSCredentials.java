@@ -10,6 +10,7 @@ public class OSCredentials {
 	public OSCredentials() {
 		user = password = tenant = keystoneEndpoint = swiftEndpoint = null;
 	}
+	
 	/**
 	 * Ask the user for type the OpenStack Credentials and save them in this
 	 * object.
@@ -25,12 +26,13 @@ public class OSCredentials {
 		tenant = br.readLine();
 		System.out.println("Enter the Keystone endpoint (ex. http://192.168.1.1:5000/v2.0):");
 		keystoneEndpoint = br.readLine();
-		System.out.println("Enter the Swift endpoint (ex. http://192.168.1.1:8080/v1/AUTH_'tenantID'):");
+		System.out.println("Enter a Swift endpoint reachable from the instances \n(ex. http://192.168.1.1:8080/v1/AUTH_'tenantID'):");
 		swiftEndpoint = br.readLine();
 		}catch (IOException e){
 			e.printStackTrace();
 		}
 	}
+	
 	@Override
 	public String toString(){
 		String ret = "user: " + user + '\n'
