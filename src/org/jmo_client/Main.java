@@ -78,8 +78,12 @@ public class Main {
 					dlArgs[i] = aux[i+1];
 				}
 				List<String> logs = logsFilter(dlArgs, os);
-				downloadLogs(os, dlArgs[0], dlArgs[1], logs);
-				
+				if (logs.size() != 0){
+					File fLogs [] = downloadLogs(os, dlArgs[0], dlArgs[1], logs);
+					viewLogs(fLogs, dlArgs[2], dlArgs[3]);
+				}else{
+					System.out.println("No logs found.");
+				}
 				break;
 			case "help":
 				break;
@@ -92,8 +96,37 @@ public class Main {
 				break;
 			}
 		}while(cmd.compareTo("quit") != 0);
-		
 		scan.close();
+	}
+	/********************************************************************************************
+	 * Print the log records in the given interval.
+	 * @param fLogs - Array of logs.
+	 * @param date1 - Begin of the interval.
+	 * @param date2 - End of the interval.
+	 */
+	private static void viewLogs(File[] fLogs, String date1, String date2) {
+		boolean end = false;
+		String datePattern ="^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:";
+		for (int i = 0; i < fLogs.length && end == false; i++){
+			try {
+				Scanner scan = new Scanner(fLogs[i]);
+				while(scan.hasNextLine()){
+					String recordDate = scan.next(datePattern);
+					String aux = recordDate.substring(0, recordDate.length()-1);//Removing semi-column
+					if(aux.compareTo(date1) >= 0 && aux.compareTo(date2) <= 0){
+						System.out.println(recordDate);
+						while(scan.hasNextLine() &&  !scan.hasNext(datePattern))
+							System.out.println(scan.nextLine());
+					}else{
+						if(aux.compareTo(date2) == 1)
+							end = true;
+					}
+				}
+				scan.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	/********************************************************************************************
 	 * Download the logs in the logs list.
