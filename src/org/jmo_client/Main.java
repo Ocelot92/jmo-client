@@ -177,25 +177,29 @@ public class Main {
 		String date2 = dlArgs[3];
 		List<? extends SwiftObject> logsSwift = os.objectStorage().objects().list(JMO_LOGS, ObjectListOptions.create()
 				.path(instance + '/' + "logs" + '/' + plugin));
-		String sLogs [] = sortPathLogs(logsSwift);
 		List<String> ris  = new ArrayList<String>();
-		if(date1.compareTo(sLogs[sLogs.length-1].substring(0,14)) != 1 && date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
-			boolean end = false;
-			for (int i=0; i < sLogs.length && end == false; i++){
-				if(sLogs[i].substring(0,14).compareTo(date1) >= 0){
-					if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
-						ris.add(sLogs[i-1]);
-					else{
-						ris.add(sLogs[i]);
-						i++;
+		if(logsSwift.size() != 0){
+			String sLogs [] = sortPathLogs(logsSwift);
+			if(date1.compareTo(sLogs[sLogs.length-1].substring(0,14)) != 1 && date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
+				boolean end = false;
+				for (int i=0; i < sLogs.length && end == false; i++){
+					if(sLogs[i].substring(0,14).compareTo(date1) >= 0){
+						if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
+							ris.add(sLogs[i-1]);
+						else{
+							ris.add(sLogs[i]);
+							i++;
+						}
+						while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
+							ris.add(sLogs[i]);
+							i++;
+						}
+						end = true;
 					}
-					while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
-						ris.add(sLogs[i]);
-						i++;
-					}
-					end = true;
 				}
 			}
+		}else{
+			System.out.println("No logs found for " + plugin + " plugin in " + instance);
 		}
 		return ris;
 	}
