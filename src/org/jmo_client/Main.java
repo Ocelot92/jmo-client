@@ -77,12 +77,16 @@ public class Main {
 				for (int i = 0; i < dlArgs.length; i++){
 					dlArgs[i] = aux[i+1];
 				}
-				List<String> logs = logsFilter(dlArgs, os);
-				if (logs.size() != 0){
-					File fLogs [] = downloadLogs(os, dlArgs[0], dlArgs[1], logs);
-					viewLogs(fLogs, dlArgs[2], dlArgs[3]);
-				}else{
-					System.out.println("No logs found in the interval.");
+				if(dlArgs[2].compareTo(dlArgs[3]) == 1)
+					System.out.println("Invalid interval.");
+				else{
+					List<String> logs = logsFilter(dlArgs, os);
+					if (logs.size() != 0){
+						File fLogs [] = downloadLogs(os, dlArgs[0], dlArgs[1], logs);
+						viewLogs(fLogs, dlArgs[2], dlArgs[3]);
+					}else{
+						System.out.println("No logs found in the interval.");
+					}
 				}
 				break;
 			case "help":
@@ -106,14 +110,16 @@ public class Main {
 	 */
 	private static void viewLogs(File[] fLogs, String date1, String date2) {
 		boolean end = false;
-		String datePattern ="^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]";
+		String datePattern = "^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]:";
+		boolean intervalHit = false;
 		for (int i = 0; i < fLogs.length && end == false; i++){
 			try {
 				Scanner scan = new Scanner(fLogs[i]);
-				while(scan.hasNextLine()){
+				while(scan.hasNext(datePattern)){
 					String recordDate = scan.next(datePattern);
-					String aux = recordDate.substring(0, recordDate.length()-1);//Removing semi-column
+					String aux = recordDate.substring(0, 14);//Removing semi-column
 					if(aux.compareTo(date1) >= 0 && aux.compareTo(date2) <= 0){
+						intervalHit = true;
 						System.out.println(recordDate);
 						while(scan.hasNextLine() &&  !scan.hasNext(datePattern))
 							System.out.println(scan.nextLine());
@@ -127,6 +133,7 @@ public class Main {
 				e.printStackTrace();
 			}
 		}
+		if(!intervalHit) System.out.println("No records found in the given interval.");
 	}
 	/********************************************************************************************
 	 * Download the logs in the logs list.
@@ -180,23 +187,23 @@ public class Main {
 		List<String> ris  = new ArrayList<String>();
 		if(logsSwift.size() != 0){
 			String sLogs [] = sortPathLogs(logsSwift);
-			if(date1.compareTo(sLogs[sLogs.length-1].substring(0,14)) != 1 && date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
-				boolean end = false;
-				for (int i=0; i < sLogs.length && end == false; i++){
-					if(sLogs[i].substring(0,14).compareTo(date1) >= 0){
-						if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
-							ris.add(sLogs[i-1]);
-						else{
-							ris.add(sLogs[i]);
-							i++;
-						}
-						while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
-							ris.add(sLogs[i]);
-							i++;
-						}
-						end = true;
+			if(date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
+				int i;
+				for(i=0 ;i < sLogs.length && sLogs[i].substring(0,14).compareTo(date1) == -1; i++);
+				if(i < sLogs.length ){
+					if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
+						ris.add(sLogs[i-1]);
+					else{
+						ris.add(sLogs[i]);
+					}
+					i++;
+					while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
+						ris.add(sLogs[i]);
+						i++;
 					}
 				}
+				if(ris.size() == 0)
+					ris.add(sLogs[i-1]); //checks the last log
 			}
 		}else{
 			System.out.println("No logs found for " + plugin + " plugin in " + instance);
