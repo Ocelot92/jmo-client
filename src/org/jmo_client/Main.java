@@ -82,7 +82,7 @@ public class Main {
 					File fLogs [] = downloadLogs(os, dlArgs[0], dlArgs[1], logs);
 					viewLogs(fLogs, dlArgs[2], dlArgs[3]);
 				}else{
-					System.out.println("No logs found.");
+					System.out.println("No logs found in the interval.");
 				}
 				break;
 			case "help":
@@ -106,7 +106,7 @@ public class Main {
 	 */
 	private static void viewLogs(File[] fLogs, String date1, String date2) {
 		boolean end = false;
-		String datePattern ="^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:";
+		String datePattern ="^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]";
 		for (int i = 0; i < fLogs.length && end == false; i++){
 			try {
 				Scanner scan = new Scanner(fLogs[i]);
