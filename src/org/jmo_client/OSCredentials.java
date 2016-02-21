@@ -5,12 +5,27 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class OSCredentials {
-	private String user, password, tenant, keystoneEndpoint, swiftEndpoint;
+	/**
+	 * The credentials used for log in on Keystone.
+	 */
+	private String user, password, tenant;
 	
+	/**
+	 * The Keystone/Identity service's endpoint.
+	 */
+	private String keystoneEndpoint;
+	
+	/**
+	 * The Object Storage service's endpoint.
+	 */
+	private String swiftEndpoint;
+	
+	/* -- Constructors -- */
 	public OSCredentials() {
 		user = password = tenant = keystoneEndpoint = swiftEndpoint = null;
 	}
 	
+	/* -- General methods -- */
 	/**
 	 * Ask the user for type the OpenStack Credentials and save them in this
 	 * object.
@@ -42,6 +57,8 @@ public class OSCredentials {
 				+ "Swift endpoint: " + swiftEndpoint + '\n';
 		return ret;
 	}
+	
+	/* -- Accessor Methods -- */
 	
 	/**
 	 * @return the user
