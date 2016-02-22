@@ -31,79 +31,82 @@ public class Main {
 	private static final String JMO_REPO = "jmo-repository"; 
 	private static final String JMO_HOME = System.getProperty("user.dir");
 	private static final String JMO_LOGS = "jmo-logs"; 
-
-	public static void main(String[] args) {
+	
+	public static void main(String args[]) {
 		File cfg = new File (JMO_HOME + File.separator + ".credentials.properties");
 		OSClient os = getOSclient(cfg);
-		Scanner scan = new Scanner(System.in);
-		String cmd = null;
-		do{
-			System.out.println("Please enter one of the following commands:\n"
-					+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
-			cmd = scan.next();
-			
-			switch(cmd){
-			case "upload-plugin":
-				String [] paths = scan.nextLine().split(" ");
-				File plugin = new File(paths[1]);
-				File script;
-				if(paths.length == 3)
-					script = new File (paths[2]);
-				else
-					script = null;
-				uploadPlugin(os, plugin, script);
-				break;
-			case "create-repo":
-				System.out.println("It may takes some time...");
-				createRepo(os);
-				break;
-			case "list":
-				listPlugins(os);
-				break;
-			case "script-init":
-				ArrayList<String> plugins = new ArrayList<String>();
-				Scanner scriptArgs = new Scanner(scan.nextLine());
-				while(scriptArgs.hasNext()){
-					String s = scriptArgs.next();
-					plugins.add(s);
+		System.out.println("Please enter one of the following commands:\n"
+				+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
+		switch(args[0]){
+		case "upload-plugin":
+			File plugin = new File(args[1]);
+			File script;
+			if(args.length == 3)
+				script = new File (args[2]);
+			else
+				script = null;
+			uploadPlugin(os, plugin, script);
+			break;
+		case "create-repo":
+			System.out.println("It may takes some time...");
+			createRepo(os);
+			break;
+		case "list":
+			listPlugins(os);
+			break;
+		case "script-init":
+			ArrayList<String> plugins = new ArrayList<String>();
+			if(args.length != 1){
+				for(int i = 1; i < args.length; i++){
+					plugins.add(args[i]);
 				}
-				scriptArgs.close();
 				prepareScriptInit(plugins, os, cfg);
 				System.out.println("Script created!");
-				break;
-			case "download":
-				String aux [] = scan.nextLine().split(" ");
-				String dlArgs [] = new String [aux.length-1];
-				for (int i = 0; i < dlArgs.length; i++){
-					dlArgs[i] = aux[i+1];
-				}
-				if(dlArgs[2].compareTo(dlArgs[3]) == 1)
-					System.out.println("Invalid interval.");
-				else{
-					List<String> logs = logsFilter(dlArgs, os);
-					if (logs.size() != 0){
-						File fLogs [] = downloadLogs(os, dlArgs[0], dlArgs[1], logs);
-						viewLogs(fLogs, dlArgs[2], dlArgs[3]);
-					}else{
-						System.out.println("No logs found in the interval.");
-					}
-				}
-				break;
-			case "help":
-				break;
-			default:
-				break;	
-			case "config":
-				createConfig(cfg);
-				os = getOSclient(cfg);
-				System.out.println("Configuration created in " + JMO_HOME);
-				break;
+			}else{
+				printHelp();
 			}
-		}while(cmd.compareTo("quit") != 0);
-		scan.close();
+			break;
+		case "download":
+			String instanceName = args[1];
+			String pluginName = args[2];
+			String date1 = args[3];
+			String date2 = args[4];
+			if(date1.compareTo(date2) == 1)
+				System.out.println("Invalid interval.");
+			else{
+				List<String> logs = logsFilter(instanceName, pluginName, date1, date2, os);
+				if (logs.size() != 0){
+					File fLogs [] = downloadLogs(os, instanceName, pluginName, logs);
+					viewLogs(fLogs, date1, date2);
+				}else{
+					System.out.println("No logs found in the interval.");
+				}
+			}
+			break;
+		case "help":
+			break;
+		default:
+			break;	
+		case "config":
+			createConfig(cfg);
+			os = getOSclient(cfg);
+			System.out.println("Configuration created in " + JMO_HOME);
+			break;
+		}
 	}
-	/********************************************************************************************
-	 * Print the log records in the given interval.
+	
+	/**
+	 * Prints help and usage of the commands supported.
+	 */
+	private static void printHelp() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
+	 * Prints the log records in the given interval on the
+	 * standard output.
+	 * 
 	 * @param fLogs - Array of logs.
 	 * @param date1 - Begin of the interval.
 	 * @param date2 - End of the interval.
@@ -135,10 +138,14 @@ public class Main {
 		}
 		if(!intervalHit) System.out.println("No records found in the given interval.");
 	}
-	/********************************************************************************************
-	 * Download the logs in the logs list.
+	
+	/**
+	 * Download the logs in the logs list and re turns the array of downloaded
+	 * files.
+	 * 
 	 * @param os - The OpenStack Client.
-	 * @param dlArgs - The download arguments.
+	 * @param instance - The instance's name.
+	 * @param plugin - The name of 
 	 * @param logs - The list of logs in Swift to download.
 	 * @return The array of file downloaded.
 	 */
@@ -171,17 +178,15 @@ public class Main {
 		}
 		return fLogs;
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Return the logs in the given interval.
+	 * 
 	 * @param dlArgs - The download arguments: hostname plugin date1 date2.
 	 * @param os - The OpenStack client.
 	 * @return The files to download
 	 */
-	private static List<String> logsFilter(String[] dlArgs, OSClient os) {
-		String instance = dlArgs[0];
-		String plugin = dlArgs[1];
-		String date1 = dlArgs[2];
-		String date2 = dlArgs[3];
+	private static List<String> logsFilter(String instance,String plugin, String date1, String date2, OSClient os) {
 		List<? extends SwiftObject> logsSwift = os.objectStorage().objects().list(JMO_LOGS, ObjectListOptions.create()
 				.path(instance + '/' + "logs" + '/' + plugin));
 		List<String> ris  = new ArrayList<String>();
@@ -210,8 +215,10 @@ public class Main {
 		}
 		return ris;
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Sort the logs by date returning an array of String.
+	 * 
 	 * @param logsSwift - The list of objects.
 	 * @return The logs sorted by date.
 	 *  An array of Strings representing the logs sorted by date.
@@ -227,8 +234,10 @@ public class Main {
 		Arrays.sort(logs);
 		return logs;				
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Upload the given java class file to Swift and its optional scripts.
+	 * 
 	 * @param os - The OpenStack client.
 	 * @param files - A String array containing in location 0 the path of the java class file and 
 	 * 				in the successive  eventually locations any scripts specified.
@@ -253,8 +262,10 @@ public class Main {
 
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * List the plugins in the JMO repository on Swift.
+	 * 
 	 * @param os - The OpenStack client.
 	 */
 	private static void listPlugins(OSClient os) {
@@ -267,8 +278,10 @@ public class Main {
 			System.out.println(plugin.getName());
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Create the JMO-Repository container in Swift.
+	 * 
 	 * @param os - The OpenStack client.
 	 */
 	private static void createRepo(OSClient os) {
@@ -281,8 +294,10 @@ public class Main {
 		os.objectStorage().objects().put(JMO_REPO, "jmo.jar", Payloads.create(new File(pathJMOjar)));
 		os.objectStorage().objects().put(JMO_REPO, "JMO-config.properties", Payloads.create(new File(pathJMOprop)));
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Upload the given directory to the JMO-Repository.
+	 * 
 	 * @param os - The OpenStack client.
 	 * @param dir - The directory to upload.
 	 */
@@ -296,8 +311,11 @@ public class Main {
 					.path('/' + dir.getName()));
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Creates a java properties file with the OpenStack credentials.
+	 * 
+	 * @param cfgFile - The File where to write the cfg.
 	 */
 	private static void createConfig(File cfgFile) {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -320,8 +338,10 @@ public class Main {
 			writeConfig(cfgFile,cred);
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Writes the credentials in the given config file.
+	 * 
 	 * @param cfg - File where to write.
 	 * @param cred - The object containing the credentials. 
 	 */
@@ -344,9 +364,11 @@ public class Main {
 			System.out.println("Credentials are null.");
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Returns an OSClient configures using the properties file passed as parameter.
 	 * Note: OpenStack v2 authentication is used.
+	 * 
 	 * @param cfgFile - the file properties used for the configuration of the client.
 	 * The properties are: URLendpoint, user, tenant, password.
 	 * @return The OSClient authenticated.
@@ -370,8 +392,10 @@ public class Main {
 		}
 		return os;
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Creates the init script to submit for the Cloud-Init at the instance creation.
+	 * 
 	 * @param plugins - The plugins to add in the script.
 	 * @param cfg - The JMO client configuration file.
 	 */
@@ -392,8 +416,10 @@ public class Main {
 			e.printStackTrace();
 		}
 	}
-	/********************************************************************************************
+	
+	/**
 	 * Create the jmo-init.sh script from a template script.
+	 * 
 	 * @param plgPicking - plugins section of the script.
 	 * @param cfg - The JMO client configuration file.
 	 * @throws IOException in case of an I/O error.
