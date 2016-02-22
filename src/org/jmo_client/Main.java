@@ -109,7 +109,7 @@ public class Main {
 				+ "COMMANDS:" + "\n"
 				+ "help - Prints the help page."
 				+ "\n\n"
-				+ "config - Create the configuration file where to store the credentials of the "
+				+ "config - Creates the configuration file where to store the credentials of the "
 				+ "Keystone service. ** Runs this first **" + "\n"
 				+ "WARNING: the credentials are stored in clear!!"
 				+ "\n\n"
@@ -118,15 +118,15 @@ public class Main {
 				+ "\n\n"
 				+ "list - Lists the plugins stored in jmo-repository/plugins."
 				+ "\n\n"
-				+ "upload-plugin - Upload a new plugin and its optional auxiliary script." + "\n"
+				+ "upload-plugin - Uploads a new plugin and its optional auxiliary script." + "\n"
 				+ "USAGE: upload-plugin Plugin.class [Plugin.sh]" + "\n"
 				+ "NOTE: The script's name must be the same of the plugin's one."
 				+ "\n\n"
 				+ "script-init - Creates the jmo-init.sh script to inizialize an instance with the Cloud-Init "
 				+ "Framework. The script will download from jmo-repository the jmo-monitor and the plugins given as argument." + "\n"
-				+ "USAGE: script-init PluginName1 [PluginName2, PluginName3..."
+				+ "USAGE: script-init PluginName1 [PluginName2, PluginName3...]"
 				+ "\n\n"
-				+ "download - Download the logs which records fit in the given date interval and prints the records that fit "
+				+ "download - Downloads the logs which records fit in the given date interval and prints the records that fit "
 				+ "on the standard output." + "\n"
 				+ "USAGE: download InstanceName PluginName yy-mm-dd_hh:MM yy-mm-dd_hh:MM");
 	}
@@ -168,7 +168,7 @@ public class Main {
 	}
 	
 	/**
-	 * Download the logs in the logs list and re turns the array of downloaded
+	 * Downloads the logs in the logs list and re turns the array of downloaded
 	 * files.
 	 * 
 	 * @param os - The OpenStack Client.
@@ -193,11 +193,7 @@ public class Main {
 				String logLine;
 				while((logLine = br.readLine()) != null)
 					pw.println(logLine);
-			}catch(IOException e){
-				e.printStackTrace();
-			}
-			pw.close();
-			try {
+				pw.close();
 				br.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -208,7 +204,7 @@ public class Main {
 	}
 	
 	/**
-	 * Return the logs in the given interval.
+	 * Returns the logs in the given interval.
 	 * 
 	 * @param dlArgs - The download arguments: hostname plugin date1 date2.
 	 * @param os - The OpenStack client.
@@ -219,7 +215,7 @@ public class Main {
 				.path(instance + '/' + "logs" + '/' + plugin));
 		List<String> ris  = new ArrayList<String>();
 		if(logsSwift.size() != 0){
-			String sLogs [] = sortPathLogs(logsSwift);
+			String sLogs [] = sortLogs(logsSwift);
 			if(date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
 				int i;
 				for(i=0 ;i < sLogs.length && sLogs[i].substring(0,14).compareTo(date1) == -1; i++);
@@ -245,13 +241,13 @@ public class Main {
 	}
 	
 	/**
-	 * Sort the logs by date returning an array of String.
+	 * Sorts the logs by date returning an array of String.
 	 * 
 	 * @param logsSwift - The list of objects.
 	 * @return The logs sorted by date.
 	 *  An array of Strings representing the logs sorted by date.
 	 */
-	private static String[] sortPathLogs(List<? extends SwiftObject> logsSwift) {
+	private static String[] sortLogs(List<? extends SwiftObject> logsSwift) {
 		String logs [] = new String [logsSwift.size()];
 		Iterator<? extends SwiftObject> objIter = logsSwift.iterator();		
 		for(int i=0; i < logs.length; i++){
@@ -264,7 +260,7 @@ public class Main {
 	}
 	
 	/**
-	 * Upload the given java class file to Swift and its optional scripts.
+	 * Uploads the given java class file to Swift and its optional scripts.
 	 * 
 	 * @param os - The OpenStack client.
 	 * @param files - A String array containing in location 0 the path of the java class file and 
@@ -278,37 +274,30 @@ public class Main {
 					Payloads.create(plugin),
 					ObjectPutOptions.create()
 					.path("plugins"));
-			if (script != null){
-				if(!script.exists())
-					System.out.println("Error retriving " + script.getName());
-				else
+			if (script != null && script.exists()){
 					os.objectStorage().objects().put(JMO_REPO, script.getName(),
 							Payloads.create(script),
 							ObjectPutOptions.create()
 							.path("scripts"));
-			}
-
+			}else if (!script.exists())
+				System.out.println("Error retriving " + script.getName());
 		}
 	}
 	
 	/**
-	 * List the plugins in the JMO repository on Swift.
+	 * Lists the plugins in the JMO repository on Swift.
 	 * 
 	 * @param os - The OpenStack client.
 	 */
 	private static void listPlugins(OSClient os) {
 		List<? extends SwiftObject> plugins = os.objectStorage().objects()
 				.list(JMO_REPO, ObjectListOptions.create().path("plugins"));
-		Iterator<? extends SwiftObject> i = plugins.iterator();
-		SwiftObject plugin = null;
-		while (i.hasNext()){
-			 plugin = i.next();
+		for (SwiftObject plugin : plugins)
 			System.out.println(plugin.getName());
-		}
 	}
 	
 	/**
-	 * Create the JMO-Repository container in Swift.
+	 * Creates the JMO-Repository container in Swift.
 	 * 
 	 * @param os - The OpenStack client.
 	 */
@@ -317,14 +306,14 @@ public class Main {
 			os.objectStorage().containers().create(JMO_REPO);
 		uploadDir(os, new File(JMO_HOME + File.separator + "plugins"));
 		uploadDir(os, new File(JMO_HOME + File.separator + "scripts"));
-		String pathJMOjar = JMO_HOME + File.separator + "jmo.jar";
+		String pathJMOjar = JMO_HOME + File.separator + "jmo-monitor.jar";
 		String pathJMOprop = JMO_HOME + File.separator + "JMO-config.properties";
-		os.objectStorage().objects().put(JMO_REPO, "jmo.jar", Payloads.create(new File(pathJMOjar)));
+		os.objectStorage().objects().put(JMO_REPO, "jmo-monitor.jar", Payloads.create(new File(pathJMOjar)));
 		os.objectStorage().objects().put(JMO_REPO, "JMO-config.properties", Payloads.create(new File(pathJMOprop)));
 	}
 	
 	/**
-	 * Upload the given directory to the JMO-Repository.
+	 * Uploads the given directory to the JMO-Repository.
 	 * 
 	 * @param os - The OpenStack client.
 	 * @param dir - The directory to upload.
@@ -364,6 +353,11 @@ public class Main {
 			OSCredentials cred = new OSCredentials();
 			cred.askCredentials();
 			writeConfig(cfgFile,cred);
+		}
+		try {
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -457,15 +451,15 @@ public class Main {
 		prop.load(is);
 		is.close();
 		File initTemplate = new File(".jmo-init-template.sh");
-		String initString = FileUtils.readFileToString(initTemplate);
-		initString = initString.replace("<user>", prop.getProperty("user"));
-		initString = initString.replace("<tenant>", prop.getProperty("tenant"));
-		initString = initString.replace("<password>", prop.getProperty("password"));
-		initString = initString.replace("<swift>", prop.getProperty("SwiftEndpoint"));
-		initString = initString.replace("<keystone>", prop.getProperty("KeystoneEndpoint"));
-		initString = initString.replace("<plugins>", plgPicking);
+		String initFile = FileUtils.readFileToString(initTemplate);
+		initFile = initFile.replace("<user>", prop.getProperty("user"));
+		initFile = initFile.replace("<tenant>", prop.getProperty("tenant"));
+		initFile = initFile.replace("<password>", prop.getProperty("password"));
+		initFile = initFile.replace("<swift>", prop.getProperty("SwiftEndpoint"));
+		initFile = initFile.replace("<keystone>", prop.getProperty("KeystoneEndpoint"));
+		initFile = initFile.replace("<plugins>", plgPicking);
 		File initScript = new File ("jmo-init.sh");
-		FileUtils.writeStringToFile(initScript, initString);
+		FileUtils.writeStringToFile(initScript, initFile);
 		initScript.setExecutable(true, false);
 	}
 }
