@@ -31,67 +31,71 @@ public class Main {
 	private static final String JMO_REPO = "jmo-repository"; 
 	private static final String JMO_HOME = System.getProperty("user.dir");
 	private static final String JMO_LOGS = "jmo-logs"; 
-	
+
 	public static void main(String args[]) {
-		File cfg = new File (JMO_HOME + File.separator + ".credentials.properties");
-		OSClient os = getOSclient(cfg);
-		System.out.println("Please enter one of the following commands:\n"
-				+ "config | upload-plugin | list | script-init | download | create-repo | help | quit\n");
-		switch(args[0]){
-		case "upload-plugin":
-			File plugin = new File(args[1]);
-			File script;
-			if(args.length == 3)
-				script = new File (args[2]);
-			else
-				script = null;
-			uploadPlugin(os, plugin, script);
-			break;
-		case "create-repo":
-			System.out.println("It may takes some time...");
-			createRepo(os);
-			break;
-		case "list":
-			listPlugins(os);
-			break;
-		case "script-init":
-			ArrayList<String> plugins = new ArrayList<String>();
-			if(args.length != 1){
-				for(int i = 1; i < args.length; i++){
-					plugins.add(args[i]);
-				}
-				prepareScriptInit(plugins, os, cfg);
-				System.out.println("Script created!");
-			}else{
-				printHelp();
-			}
-			break;
-		case "download":
-			String instanceName = args[1];
-			String pluginName = args[2];
-			String date1 = args[3];
-			String date2 = args[4];
-			if(date1.compareTo(date2) == 1)
-				System.out.println("Invalid interval.");
-			else{
-				List<String> logs = logsFilter(instanceName, pluginName, date1, date2, os);
-				if (logs.size() != 0){
-					File fLogs [] = downloadLogs(os, instanceName, pluginName, logs);
-					viewLogs(fLogs, date1, date2);
+		if(args.length != 0){
+			File cfg = new File (JMO_HOME + File.separator + ".credentials.properties");
+			OSClient os = getOSclient(cfg);
+			switch(args[0]){
+			case "upload-plugin":
+				File plugin = new File(args[1]);
+				File script;
+				if(args.length == 3)
+					script = new File (args[2]);
+				else
+					script = null;
+				uploadPlugin(os, plugin, script);
+				break;
+			case "create-repo":
+				System.out.println("It may takes some time...");
+				createRepo(os);
+				break;
+			case "list":
+				listPlugins(os);
+				break;
+			case "script-init":
+				ArrayList<String> plugins = new ArrayList<String>();
+				if(args.length != 1){
+					for(int i = 1; i < args.length; i++){
+						plugins.add(args[i]);
+					}
+					prepareScriptInit(plugins, os, cfg);
+					System.out.println("Script created!");
 				}else{
-					System.out.println("No logs found in the interval.");
+					printHelp();
 				}
-			}
-			break;
-		case "help":
-			break;
-		default:
-			break;	
-		case "config":
-			createConfig(cfg);
-			os = getOSclient(cfg);
-			System.out.println("Configuration created in " + JMO_HOME);
-			break;
+				break;
+			case "download":
+				String instanceName = args[1];
+				String pluginName = args[2];
+				String date1 = args[3];
+				String date2 = args[4];
+				if(date1.compareTo(date2) == 1)
+					System.out.println("Invalid interval.");
+				else{
+					List<String> logs = logsFilter(instanceName, pluginName, date1, date2, os);
+					if (logs.size() != 0){
+						File fLogs [] = downloadLogs(os, instanceName, pluginName, logs);
+						viewLogs(fLogs, date1, date2);
+					}else{
+						System.out.println("No logs found in the interval.");
+					}
+				}
+				break;
+			case "help":
+				printHelp();
+				break;
+			default:
+				printHelp();
+				break;	
+			case "config":
+				createConfig(cfg);
+				os = getOSclient(cfg);
+				System.out.println("Configuration created in " + JMO_HOME);
+				break;
+			} 
+		} else {
+			printHelp();
 		}
 	}
 	
@@ -99,8 +103,32 @@ public class Main {
 	 * Prints help and usage of the commands supported.
 	 */
 	private static void printHelp() {
-		// TODO Auto-generated method stub
-		
+		System.out.println(
+				"jmo-client is a simple java application for interacting with the JMO's containers"
+				+ "on Swift, namely jmo-repository and jmo-logs, using the OpenStack4j APIs." + "\n"
+				+ "COMMANDS:" + "\n"
+				+ "help - Prints the help page."
+				+ "\n\n"
+				+ "config - Create the configuration file where to store the credentials of the "
+				+ "Keystone service. ** Runs this first **" + "\n"
+				+ "WARNING: the credentials are stored in clear!!"
+				+ "\n\n"
+				+ "create-repo - Creates the jmo-repository uploading the jmo-monitor.jar, JMO-config.properties "
+				+ "files and the default plugins."
+				+ "\n\n"
+				+ "list - Lists the plugins stored in jmo-repository/plugins."
+				+ "\n\n"
+				+ "upload-plugin - Upload a new plugin and its optional auxiliary script." + "\n"
+				+ "USAGE: upload-plugin Plugin.class [Plugin.sh]" + "\n"
+				+ "NOTE: The script's name must be the same of the plugin's one."
+				+ "\n\n"
+				+ "script-init - Creates the jmo-init.sh script to inizialize an instance with the Cloud-Init "
+				+ "Framework. The script will download from jmo-repository the jmo-monitor and the plugins given as argument." + "\n"
+				+ "USAGE: script-init PluginName1 [PluginName2, PluginName3..."
+				+ "\n\n"
+				+ "download - Download the logs which records fit in the given date interval and prints the records that fit "
+				+ "on the standard output." + "\n"
+				+ "USAGE: download InstanceName PluginName yy-mm-dd_hh:MM yy-mm-dd_hh:MM");
 	}
 	
 	/**
@@ -356,7 +384,6 @@ public class Main {
 						+ "KeystoneEndpoint=" + cred.getKeystoneEndpoint());
 				fw.print("#Swift endpoint\n"
 						+ "SwiftEndpoint="+ cred.getSwiftEndpoint());
-				
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
