@@ -141,22 +141,26 @@ public class Main {
 	 */
 	private static void viewLogs(File[] fLogs, String date1, String date2) {
 		boolean end = false;
-		String datePattern = "^[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]:";
+		String datePattern = "[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]:";
 		boolean intervalHit = false;
 		for (int i = 0; i < fLogs.length && end == false; i++){
 			try {
 				Scanner scan = new Scanner(fLogs[i]);
-				while(scan.hasNext(datePattern)){
+				while(scan.hasNext(datePattern) && end == false){
 					String recordDate = scan.next(datePattern);
-					String aux = recordDate.substring(0, 14);//Removing semi-column
+					scan.nextLine();
+					String aux = recordDate.substring(0, 14);//Removing semi-column at the end
 					if(aux.compareTo(date1) >= 0 && aux.compareTo(date2) <= 0){
 						intervalHit = true;
 						System.out.println(recordDate);
 						while(scan.hasNextLine() &&  !scan.hasNext(datePattern))
 							System.out.println(scan.nextLine());
-					}else{
-						if(aux.compareTo(date2) == 1)
-							end = true;
+						System.out.println();
+					}else if(aux.compareTo(date2) == 1){
+						end = true;
+					}else if (!intervalHit){//else scan until next record
+						while(scan.hasNextLine() &&  !scan.hasNext(datePattern))
+							scan.nextLine();
 					}
 				}
 				scan.close();
