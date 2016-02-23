@@ -223,13 +223,9 @@ public class Main {
 			if(date2.compareTo(sLogs[0].substring(0,14)) != -1 ){//some basic check
 				int i;
 				for(i=0 ;i < sLogs.length && sLogs[i].substring(0,14).compareTo(date1) == -1; i++);
-				if(i < sLogs.length ){
-					if(sLogs[i].substring(0,14).compareTo(date1) > 0 && (i-1) != -1)
+				if(i < sLogs.length){
+					if ((i-1) != -1)
 						ris.add(sLogs[i-1]);
-					else{
-						ris.add(sLogs[i]);
-					}
-					i++;
 					while (i < sLogs.length && sLogs[i].substring(0,14).compareTo(date2) <= 0){
 						ris.add(sLogs[i]);
 						i++;
