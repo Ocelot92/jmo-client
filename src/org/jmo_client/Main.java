@@ -339,13 +339,13 @@ public class Main {
 		String aux = null;
 		if (cfgFile.exists()){
 			do{
-			System.out.println("A config file already exists in " + cfgFile.getAbsolutePath() +". Do "
-					+ "you want to overwrite it? (yes/no)");
-			try {
-				aux = br.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+				System.out.println("A config file already exists in " + cfgFile.getAbsolutePath() +". Do "
+						+ "you want to overwrite it? (yes/no)");
+				try {
+					aux = br.readLine();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}while (aux.compareTo("yes") != 0 && aux.compareTo("no") != 0);
 		}
 		if (aux == null || aux.compareTo("yes") == 0){
