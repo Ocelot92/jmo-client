@@ -6,4 +6,4 @@ This is the client of JMO. You can use this to download logs, create the script 
 You can find the jmo-monitor here: https://github.com/Ocelot92/jmo-monitor
 
 You need the openstack4j APIs: http://openstack4j.com/
-and the Apache Commons-IO; http://commons.apache.org/proper/commons-io/
+and the Apache Commons-IO: http://commons.apache.org/proper/commons-io/
